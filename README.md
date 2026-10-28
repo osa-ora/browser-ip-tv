@@ -9,14 +9,21 @@ A local IPTV client built with Python, FastAPI, HTML, CSS, and vanilla JavaScrip
 - Xtream Codes profiles for Live TV, Movies, Series, categories, account status, and subscription expiry when provided by the service.
 - M3U/M3U8 playlist support for Live TV.
 - Multiple named IPTV profiles with add, edit, remove, and top-bar server switching.
+
+  <img width="758" height="627" alt="Screenshot 2026-10-28 at 10 49 34 PM" src="https://github.com/user-attachments/assets/537c1608-b18f-440f-a98d-ed221ac57e0c" />
+  
 - Home sections for Continue Watching, Movies, Series, and Live TV; drag sections to reorder them.
 - Favorite channels, movies, and series, saved per IPTV profile and pinned to the top of each library's navigation tree.
 - Home rows show favorites for Live TV, Movies, and Series when favorites exist; otherwise, they show the default catalog selection.
 - Continue Watching saves playback progress and navigation context per profile and resumes supported streams from the saved position.
-- Series playback displays episodes grouped by season in the player playlist.
+
+  <img width="1669" height="852" alt="Screenshot 2026-10-28 at 10 48 54 PM" src="https://github.com/user-attachments/assets/1b4825e3-4b71-4a13-8fd8-15f30c819da2" />
+
 - Daily catalog cache under `~/.local-iptv/cache/`.
 - Optional application password, temporary lockout after three failed attempts, dark/light/system themes, and saved preferences.
 - Local configuration under `~/.local-iptv/` (Windows: the home directory's `.local-iptv` folder).
+
+
 
 ## Run
 
