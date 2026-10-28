@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Local IPTV</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=0.2.7">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <a class="brand" href="#" id="brandHome"><span class="brand-mark">▶</span><span>LOCAL<span class="brand-accent">IPTV</span></span></a>
+      <div class="top-actions">
+        <span id="profileStatus" class="profile-status"></span>
+        <button class="icon-btn" id="switchProfileTop" title="Switch IPTV server (requires multiple profiles)" aria-label="Switch IPTV server" disabled>⇄</button>
+        <button class="icon-btn" id="addProfileTop" title="Add IPTV profile" aria-label="Add IPTV profile">＋</button>
+        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+        <button class="icon-btn" id="closeBtn" title="Close application" aria-label="Close application">×</button>
+      </div>
+    </header>
+    <main>
+      <section id="loginScreen" class="gate hidden">
+        <div class="gate-card">
+          <div class="brand-mark large">▶</div>
+          <p class="eyebrow">PRIVATE MEDIA SPACE</p><h1>Welcome back</h1>
+          <p class="muted">Enter your application password to continue.</p>
+          <form id="loginForm"><label>Application password<input id="loginPassword" type="password" autocomplete="current-password" required></label><button class="primary full">Unlock</button></form>
+          <p id="loginError" class="error"></p>
+        </div>
+      </section>
+      <section id="setupScreen" class="gate hidden">
+        <div class="gate-card">
+          <div class="brand-mark large">▶</div><p class="eyebrow">YOUR MEDIA, YOUR DEVICE</p><h1>Set up IPTV</h1>
+          <p class="muted">Add an IPTV profile to start browsing. You can optionally protect the app in Settings.</p>
+          <button class="primary full" id="firstProfileBtn">＋ Add your first IPTV profile</button>
+        </div>
+      </section>
+      <section id="homeScreen" class="hidden">
+        <div class="welcome-row"><div><p class="eyebrow">YOUR ENTERTAINMENT</p><h1>Discover something to watch</h1></div></div>
+        <div id="homeSections" class="home-sections"></div>
+      </section>
+      <section id="browserScreen" class="hidden">
+        <div class="browser-heading"><div><button class="back-link" id="backHome">← Home</button><h1 id="browserTitle">Live TV</h1><p class="muted" id="browserSubtitle">Browse your library</p></div><div class="browser-tools"><input id="searchInput" type="search" placeholder="Search this library…" aria-label="Search this library"></div></div>
+        <div class="media-layout">
+          <aside class="tree-panel"><div class="panel-title">CATEGORIES</div><div id="categoryTree"></div></aside>
+          <section class="media-content"><div class="content-toolbar"><span id="itemCount">Loading library…</span><select id="sortSelect" aria-label="Sort items"><option value="name">Name A–Z</option><option value="recent">Recently added</option></select></div><div id="mediaGrid" class="media-grid"></div></section>
+        </div>
+      </section>
+      <section id="playerScreen" class="hidden">
+        <div class="player-heading"><button class="back-link" id="backBrowser">← Library</button><div><h1 id="playerTitle">Now playing</h1><p id="playerMeta" class="muted"></p></div></div>
+        <div class="player-layout"><aside class="tree-panel player-tree"><div class="panel-title">PLAYLIST</div><div id="playerTree"></div></aside><div class="video-wrap"><video id="videoPlayer" controls playsinline></video><div id="playerMessage" class="player-message hidden"></div></div></div>
+      </section>
+    </main>
+    <div id="modalBackdrop" class="modal-backdrop hidden">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-head"><div><p class="eyebrow">LOCAL IPTV</p><h2 id="modalTitle">Add IPTV profile</h2></div><button id="modalClose" class="icon-btn" aria-label="Close dialog">×</button></div>
+        <form id="profileForm" class="form-grid">
+          <input type="hidden" id="editingProfileId">
+          <label>Profile nickname<input id="profileNickname" maxlength="80" placeholder="e.g. Home IPTV" required></label>
+          <label>Connection method<select id="profileMethod"><option value="xtream">Xtream Codes API</option><option value="m3u">M3U playlist URL</option></select></label>
+          <label class="wide" id="serverUrlLabel">Server URL<input id="serverUrl" type="url" placeholder="https://provider.example:8080" required></label>
+          <label id="usernameLabel">Username<input id="profileUsername" autocomplete="off"></label>
+          <label id="passwordLabel">Password<input id="profilePassword" type="password" autocomplete="new-password"></label>
+          <p class="muted wide small" id="methodHint">Use the base server URL, without player_api.php.</p>
+          <div class="wide form-actions"><button type="button" class="secondary" id="testProfileBtn">Test connection</button><span id="testResult" class="form-result"></span></div>
+          <div class="wide form-actions end"><button type="button" class="secondary" id="cancelProfileBtn">Cancel</button><button class="primary" id="saveProfileBtn">Save profile</button></div>
+        </form>
+      </section>
+    </div>
+    <div id="settingsBackdrop" class="modal-backdrop hidden">
+      <section class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modal-head"><div><p class="eyebrow">PREFERENCES</p><h2 id="settingsTitle">Settings</h2></div><button id="settingsClose" class="icon-btn" aria-label="Close settings">×</button></div>
+        <div class="settings-body">
+          <section class="settings-group"><h3>Appearance</h3><label>Theme<select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option><option value="system">Use system setting</option></select></label></section>
+          <section class="settings-group"><h3>Home screen</h3><p class="muted small">Drag the sections on the home screen to change their order.</p><label class="check-row"><input id="showExpiry" type="checkbox"> Show subscription expiry when available</label></section>
+          <section class="settings-group"><h3>Application password</h3><p class="muted small">Optional. Use at least 8 characters. Three failed attempts trigger a five-minute temporary lockout. No inactivity lock is used.</p><label>New password<input id="newAppPassword" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label><div class="form-actions"><button class="primary" id="setAppPassword">Set / update password</button><button class="secondary" id="removeAppPassword">Remove password</button></div><p id="passwordResult" class="form-result"></p></section>
+          <section class="settings-group"><h3>Profiles</h3><div id="settingsProfiles"></div></section>
+          <section class="settings-group"><h3>About</h3><p class="muted small">Local IPTV · Version 0.2.7<br>Local-first browser IPTV client. Provider content and subscription are supplied by your IPTV service.</p></section>
+          <div class="form-actions end"><button class="primary" id="saveSettings">Save settings</button></div>
+        </div>
+      </section>
+    </div>
+    <div id="toast" class="toast hidden" role="status"></div>
+  </div>
+  <script src="/static/js/app.js?v=0.2.7"></script>
+</body>
+</html>
