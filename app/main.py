@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import signal
 import threading
 import time
 import uuid
@@ -35,7 +36,7 @@ LOCKED_UNTIL = 0.0
 SESSIONS: dict[str, float] = {}
 SESSION_TTL = 12 * 60 * 60
 
-app = FastAPI(title=APP_NAME, version="0.2.7")
+app = FastAPI(title=APP_NAME, version="0.2.8")
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
@@ -678,3 +679,24 @@ def refresh_profile(request: FastAPIRequest):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "application": APP_NAME, "version": app.version}
+
+
+def _shutdown_server_after_response() -> None:
+    # Let FastAPI send the HTTP response before terminating the server process.
+    time.sleep(0.5)
+    pid_file = DATA_DIR / "server.pid"
+    try:
+        if pid_file.read_text(encoding="ascii").strip() == str(os.getpid()):
+            pid_file.unlink()
+    except (OSError, ValueError):
+        pass
+    try:
+        os.kill(os.getpid(), signal.SIGTERM)
+    except OSError:
+        pass
+
+
+@app.post("/api/shutdown")
+def shutdown_application():
+    threading.Thread(target=_shutdown_server_after_response, daemon=True).start()
+    return {"status": "shutting_down"}

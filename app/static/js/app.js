@@ -87,7 +87,7 @@
     if(!item||!profileId||type==="live")return;
     const key=itemKey(item);const navigation=state.currentNavigation||item._navigation||{type,categoryId:item.category_id==null?null:String(item.category_id)};const record={profileId,type,item,navigation,position:Number.isFinite(position)?position:0,duration:Number.isFinite(duration)?duration:0,updated_at:Math.floor(Date.now()/1000)};
     state.recent=[record,...state.recent.filter(x=>!(x.profileId===profileId&&x.type===type&&itemKey(x.item)===key))].slice(0,50);
-    api("/api/recent",{method:"POST",body:{profile_id:profileId,media_type:type,item,navigation,position:record.position,duration:record.duration}}).catch(()=>{});
+    return api("/api/recent",{method:"POST",body:{profile_id:profileId,media_type:type,item,navigation,position:record.position,duration:record.duration}}).catch(()=>{});
   }
   function wireDragAndDrop(){
     let dragging=null;
@@ -284,7 +284,15 @@
   $("backHome").addEventListener("click",()=>{stopPlayback();showScreen("homeScreen");renderHome();});
   $("backBrowser").addEventListener("click",()=>{const nav=state.currentNavigation||{type:state.mediaType,categoryId:state.categoryId};stopPlayback();openBrowser(nav.type||state.mediaType,nav.categoryId??null);});
   $("brandHome").addEventListener("click",e=>{e.preventDefault();if(state.profiles.length){stopPlayback();showScreen("homeScreen");renderHome();}});
-  $("closeBtn").addEventListener("click",()=>{if(confirm("Close the Local IPTV browser tab?"))window.close();});
+  $("closeBtn").addEventListener("click",async()=>{
+    if(!confirm("Close Local IPTV and stop its server?"))return;
+    const video=$("videoPlayer");
+    if(video&&state.currentItem)await persistRecent(video.currentTime||0,video.duration||0);
+    stopPlayback();
+    try{await api("/api/shutdown",{method:"POST"});}catch{}
+    window.close();
+    document.body.innerHTML='<main style="font:16px system-ui;padding:3rem;max-width:40rem;margin:auto"><h1>Local IPTV stopped</h1><p>The application server has been shut down. You can close this browser tab.</p></main>';
+  });
   $("modalBackdrop").addEventListener("click",e=>{if(e.target===$("modalBackdrop"))closeProfileModal();});
   $("settingsBackdrop").addEventListener("click",e=>{if(e.target===$("settingsBackdrop"))$("settingsBackdrop").classList.add("hidden");});
   const video=$("videoPlayer");
