@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Local IPTV</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=0.2.8">
+  <link rel="stylesheet" href="/static/css/app.css?v=0.3.1">
 </head>
 <body>
   <div id="app">
@@ -75,13 +75,13 @@
           <section class="settings-group"><h3>Home screen</h3><p class="muted small">Drag the sections on the home screen to change their order.</p><label class="check-row"><input id="showExpiry" type="checkbox"> Show subscription expiry when available</label></section>
           <section class="settings-group"><h3>Application password</h3><p class="muted small">Optional. Use at least 8 characters. Three failed attempts trigger a five-minute temporary lockout. No inactivity lock is used.</p><label>New password<input id="newAppPassword" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label><div class="form-actions"><button class="primary" id="setAppPassword">Set / update password</button><button class="secondary" id="removeAppPassword">Remove password</button></div><p id="passwordResult" class="form-result"></p></section>
           <section class="settings-group"><h3>Profiles</h3><div id="settingsProfiles"></div></section>
-          <section class="settings-group"><h3>About</h3><p class="muted small">Local IPTV · Version 0.2.8<br>Local-first browser IPTV client. Provider content and subscription are supplied by your IPTV service.</p></section>
+          <section class="settings-group"><h3>About</h3><p class="muted small">Local IPTV · Version 0.3.1<br>Local-first browser IPTV client. Provider content and subscription are supplied by your IPTV service.</p></section>
           <div class="form-actions end"><button class="primary" id="saveSettings">Save settings</button></div>
         </div>
       </section>
     </div>
     <div id="toast" class="toast hidden" role="status"></div>
   </div>
-  <script src="/static/js/app.js?v=0.2.8"></script>
+  <script src="/static/js/app.js?v=0.3.1"></script>
 </body>
 </html>

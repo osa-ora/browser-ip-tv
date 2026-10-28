@@ -36,7 +36,7 @@ LOCKED_UNTIL = 0.0
 SESSIONS: dict[str, float] = {}
 SESSION_TTL = 12 * 60 * 60
 
-app = FastAPI(title=APP_NAME, version="0.2.8")
+app = FastAPI(title=APP_NAME, version="0.3.1")
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 

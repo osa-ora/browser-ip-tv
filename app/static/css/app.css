@@ -14,3 +14,6 @@
 .player-tree-row{display:flex;align-items:center;gap:6px;width:100%}
 .player-tree-row .tree-more{position:static;display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;padding:0;opacity:1;visibility:visible;pointer-events:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text)}
 .player-tree-row .tree-more:hover,.player-tree-row .tree-more.is-favorite{color:var(--accent);border-color:var(--accent)}
+
+/* Season-grouped series playlist */
+.season-group{margin:0 0 8px;border:1px solid var(--line);border-radius:9px;overflow:hidden}.season-heading{display:flex;align-items:center;gap:8px;width:100%;padding:10px;background:var(--panel2);border:0;color:var(--text);text-align:left;font-size:12px;font-weight:700;cursor:pointer}.season-heading:hover{color:var(--accent)}.season-chevron{width:12px;color:var(--accent)}.season-count{margin-left:auto;color:var(--muted);font-size:10px;font-weight:500}.season-episodes{padding:4px 5px 5px 12px}.episode-row .tree-item{padding:8px 7px;font-size:11px}.episode-row .tree-item.active{color:var(--text)}

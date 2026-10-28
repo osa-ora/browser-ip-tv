@@ -1,6 +1,6 @@
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = {passwordConfigured:false, authenticated:false, profiles:[], activeProfile:null, settings:{theme:"dark",home_order:["continue","movies","series","live"],show_expiry:true}, mediaType:"live", categories:[], items:[], catalogItems:[], catalogByType:{live:[],movies:[],series:[]}, favoritesByType:{live:[],movies:[],series:[]}, categoryId:null, currentItem:null, currentStreamUrl:null, currentNavigation:null, recent:[], lastRecentSave:0, resumeOnMetadata:null, movieFallbackTried:false, expiryRefreshAttempted:new Set()};
+  const state = {passwordConfigured:false, authenticated:false, profiles:[], activeProfile:null, settings:{theme:"dark",home_order:["continue","movies","series","live"],show_expiry:true}, mediaType:"live", categories:[], items:[], catalogItems:[], catalogByType:{live:[],movies:[],series:[]}, favoritesByType:{live:[],movies:[],series:[]}, categoryId:null, currentItem:null, currentStreamUrl:null, currentNavigation:null, recent:[], lastRecentSave:0, resumeOnMetadata:null, movieFallbackTried:false, expiryRefreshAttempted:new Set(), expandedSeasons:new Set(), seasonTreeSeriesId:null};
   const sectionMeta = {
     continue:{title:"Continue Watching", subtitle:"Pick up where you left off", icon:"◷"},
     movies:{title:"Movies", subtitle:"Feature films and favorites", icon:"▣"},
@@ -23,7 +23,7 @@
   function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function getName(item){return item.name||item.title||item.stream_name||item.series_name||"Untitled";}
   function getIcon(type){return type==="live"?"◉":type==="movies"?"▣":"▤";}
-  function poster(item,type){const img=item.stream_icon||item.cover||item.movie_image||item.icon;return `<div class="poster">${img?`<img loading="lazy" src="${escapeHtml(img)}" alt="" onerror="this.remove()">`:`<span class="poster-icon">${getIcon(type)}</span>`}<span class="poster-tag">${type==="live"?"LIVE":type==="movies"?"MOVIE":"SERIES"}</span></div>`;}
+  function poster(item,type){const displayItem=isEpisode(item)&&item._parentSeries?item._parentSeries:item;const backdrop=Array.isArray(displayItem.backdrop_path)?displayItem.backdrop_path[0]:displayItem.backdrop_path;const img=displayItem.stream_icon||displayItem.cover||displayItem.cover_big||displayItem.movie_image||displayItem.icon||backdrop;return `<div class="poster">${img?`<img loading="lazy" src="${escapeHtml(img)}" alt="" onerror="this.remove()">`:`<span class="poster-icon">${getIcon(type)}</span>`}<span class="poster-tag">${type==="live"?"LIVE":type==="movies"?"MOVIE":"SERIES"}</span></div>`;}
   function itemKey(item){return String(item.stream_url||item.stream_id||item.series_id||item.id||getName(item));}
   function isEpisode(item){return !!(item?._isEpisode || item?._parentSeries || item?._season != null || item?.episode_num != null);}
   function isFavorite(item,type){if(type==="series"&&isEpisode(item))return false;return (state.favoritesByType[type]||[]).some(x=>!isEpisode(x)&&itemKey(x)===itemKey(item));}
@@ -133,6 +133,34 @@
     }
     if(item?._isEpisode && item?._parentSeries) {
       state.currentNavigation={...(item._navigation||state.currentNavigation),type:"series"};
+      // Continue Watching restores a single saved episode, so rebuild the complete
+      // season/episode tree before starting it rather than showing only that episode.
+      const series=item._parentSeries;
+      const seriesId=String(item._seriesId??series.series_id??series.stream_id??series.id??"");
+      const hasCompleteTree=state.seasonTreeSeriesId===seriesId &&
+        (state.playerItems||[]).some(ep=>ep._isEpisode && String(ep._seriesId??"")===seriesId);
+      if(activeProfile()?.method==="xtream" && seriesId && !hasCompleteTree){
+        try{
+          const info=await api(`/api/series/${encodeURIComponent(seriesId)}?profile_id=${encodeURIComponent(state.activeProfile)}`);
+          const episodes=info.episodes||{};
+          const seasonEntries=Object.entries(episodes);
+          const flattened=seasonEntries.flatMap(([season,entries])=>(entries||[]).map(ep=>({
+            ...ep,name:ep.title||ep.name||`Episode ${ep.episode_num??""}`.trim(),
+            _isEpisode:true,_season:String(season),_parentSeries:series,_seriesId:seriesId,
+            _navigation:{...(item._navigation||state.currentNavigation||{type:"series",categoryId:series.category_id??null}),type:"series"}
+          })));
+          if(flattened.length){
+            state.seasonTreeSeriesId=seriesId;
+            state.expandedSeasons=new Set(seasonEntries.filter(([,entries])=>(entries||[]).length).map(([season])=>String(season)));
+            state.playerItems=flattened;
+            const savedId=String(item.stream_id??item.id??item.series_id??"");
+            const match=flattened.find(ep=>String(ep.stream_id??ep.id??ep.series_id??"")===savedId) ||
+              flattened.find(ep=>String(ep._season)===String(item._season??"") && String(ep.episode_num??"")===String(item.episode_num??"")) ||
+              flattened.find(ep=>getName(ep)===getName(item));
+            if(match)item=match;
+          }
+        }catch(e){toast(`Could not restore the full series tree: ${e.message}`,true);return;}
+      }
     }
     // Selecting a series opens every episode returned by Xtream, not just its first episode.
     if(type==="series" && !item._isEpisode && activeProfile()?.method==="xtream"){
@@ -140,12 +168,15 @@
         const seriesId=item.series_id??item.stream_id??item.id;
         const info=await api(`/api/series/${encodeURIComponent(seriesId)}?profile_id=${encodeURIComponent(state.activeProfile)}`);
         const episodes=info.episodes||{};
-        const flattened=Object.entries(episodes).flatMap(([season,entries])=>(entries||[]).map(ep=>({
+        const seasonEntries=Object.entries(episodes);
+        const flattened=seasonEntries.flatMap(([season,entries])=>(entries||[]).map(ep=>({
           ...ep, name:ep.title||ep.name||`Episode ${ep.episode_num??""}`.trim(),
           _isEpisode:true, _season:String(season), _parentSeries:item,
           _seriesId:String(seriesId), _navigation:{...(state.currentNavigation||{type:"series",categoryId:item.category_id??null}),type:"series"}
         })));
         if(!flattened.length){toast("No playable episodes were returned for this series.",true);return;}
+        state.seasonTreeSeriesId=String(seriesId);
+        state.expandedSeasons=new Set(seasonEntries.filter(([,entries])=>(entries||[]).length).map(([season])=>String(season)));
         state.playerItems=flattened;
         state.playerType="series";
         await playItem(flattened[0],"series");
@@ -196,11 +227,25 @@
     state.currentStreamUrl=null;
   }
   function renderPlayerTree(current){
-    const items=state.playerItems||[current];const favorites=state.favoritesByType[state.playerType]||[];
+    const items=state.playerItems||[current];
+    const activeId=String(current.stream_id??current.series_id??current.id??current.stream_url??getName(current));
+    if(state.playerType==="series"&&items.some(isEpisode)){
+      const groups=new Map();
+      for(const item of items){const season=String(item._season??"Unknown");if(!groups.has(season))groups.set(season,[]);groups.get(season).push(item);}
+      const seasons=[...groups.keys()].sort((a,b)=>{const an=Number(a),bn=Number(b);if(Number.isFinite(an)&&Number.isFinite(bn))return an-bn;if(Number.isFinite(an))return -1;if(Number.isFinite(bn))return 1;return a.localeCompare(b);});
+      const html=seasons.map(season=>{
+        const episodes=groups.get(season);const expanded=state.expandedSeasons.has(season);
+        const label=/^\d+$/.test(season)?`Season ${season}`:season==="Unknown"?"Season unknown":season;
+        return `<section class="season-group"><button type="button" class="season-heading" data-season-toggle="${escapeHtml(season)}" aria-expanded="${expanded}"><span class="season-chevron">${expanded?"▾":"▸"}</span><span>${escapeHtml(label)}</span><span class="season-count">${episodes.length}</span></button>${expanded?`<div class="season-episodes">${episodes.map(item=>{const id=item.stream_id??item.series_id??item.id??item.stream_url??getName(item);const active=String(id)===activeId;return `<div class="player-tree-row episode-row"><button class="tree-item ${active?"active":""}" data-player-item="${escapeHtml(id)}">${escapeHtml(getName(item))}</button></div>`;}).join("")}</div>`:""}</section>`;
+      }).join("");
+      $("playerTree").innerHTML='<div class="panel-title">SEASONS &amp; EPISODES</div>'+html;
+      return;
+    }
+    const favorites=state.favoritesByType[state.playerType]||[];
     const favKeys=new Set(favorites.map(itemKey));const ordered=[...items.filter(x=>favKeys.has(itemKey(x))),...items.filter(x=>!favKeys.has(itemKey(x)))];
     $("playerTree").innerHTML=`<div class="panel-title">${state.playerType==="live"?"CHANNELS":state.playerType==="movies"?"MOVIES":"EPISODES"}</div>`+ordered.map(item=>{
-      const id=item.stream_id??item.series_id??item.id??item.stream_url??getName(item);const active=String(id)===String(current.stream_id??current.series_id??current.id??current.stream_url??getName(current));const episode=state.playerType==="series"&&isEpisode(item);const fav=isFavorite(item,state.playerType);
-      return `<div class="player-tree-row"><button class="tree-item ${active?"active":""}" data-player-item="${escapeHtml(id)}">${fav?"★ ":""}${item._season?`S${escapeHtml(item._season)} · `:""}${escapeHtml(getName(item))}</button>${episode?"":`<button type="button" class="tree-more ${fav?"is-favorite":""}" data-favorite-id="${escapeHtml(id)}" data-favorite-type="${state.playerType}" title="${fav?"Remove from favorites":"Add to favorites"}" aria-label="${fav?"Remove from favorites":"Add to favorites"}">⋮</button>`}</div>`;
+      const id=item.stream_id??item.series_id??item.id??item.stream_url??getName(item);const active=String(id)===activeId;const fav=isFavorite(item,state.playerType);
+      return `<div class="player-tree-row"><button class="tree-item ${active?"active":""}" data-player-item="${escapeHtml(id)}">${fav?"★ ":""}${escapeHtml(getName(item))}</button><button type="button" class="tree-more ${fav?"is-favorite":""}" data-favorite-id="${escapeHtml(id)}" data-favorite-type="${state.playerType}" title="${fav?"Remove from favorites":"Add to favorites"}" aria-label="${fav?"Remove from favorites":"Add to favorites"}">⋮</button></div>`;
     }).join("");
   }
   function attachVideo(url,hls){const video=$("videoPlayer");if(video._playbackTimer)clearTimeout(video._playbackTimer);$("playerMessage").classList.add("hidden");if(hls&&window.Hls&&window.Hls.isSupported()){if(video._hls)video._hls.destroy();video._hls=new window.Hls({enableWorker:true,lowLatencyMode:false});video._hls.on(window.Hls.Events.ERROR,(_event,data)=>{if(data.fatal){showPlayerError(data.type==="networkError"?"The provider did not deliver the stream. Check the URL, credentials, or provider availability.":"The browser could not decode this stream format.");video._hls.destroy();video._hls=null;}});video._hls.loadSource(url);video._hls.attachMedia(video);video.play().catch(()=>{});}else{video.src=url;video.play().catch(()=>{});}}
@@ -278,7 +323,7 @@
   $("homeSections").addEventListener("click",e=>{const favBtn=e.target.closest("[data-favorite-id]");if(favBtn){e.preventDefault();e.stopPropagation();const item=[...(state.catalogByType[favBtn.dataset.favoriteType]||[]),...(state.favoritesByType[favBtn.dataset.favoriteType]||[]),...state.recent.map(x=>x.item)].find(i=>String(i.stream_id??i.series_id??i.id??i.stream_url??getName(i))===favBtn.dataset.favoriteId);if(item)toggleFavorite(item,favBtn.dataset.favoriteType);return;}const cardEl=e.target.closest(".media-card");if(cardEl){const item=[...(state.catalogByType[cardEl.dataset.type]||[]),...(state.favoritesByType[cardEl.dataset.type]||[]),...state.items].find(i=>String(i.stream_id??i.series_id??i.id??i.stream_url??getName(i))===cardEl.dataset.itemId);if(item){const type=cardEl.dataset.type;const showingFavorites=["live","movies","series"].includes(type)&&(state.favoritesByType[type]||[]).some(f=>itemKey(f)===itemKey(item));state.currentNavigation={type,categoryId:showingFavorites?"__favorites__":(item.category_id==null?null:String(item.category_id))};playItem(item,cardEl.dataset.type);return;}const recent=state.recent.find(x=>String(x.item.stream_id??x.item.series_id??x.item.id??x.item.stream_url??getName(x.item))===cardEl.dataset.itemId&&x.type===cardEl.dataset.type);if(recent){const resumed={...recent.item,_navigation:recent.navigation||recent.item._navigation||{type:recent.type,categoryId:recent.item.category_id==null?null:String(recent.item.category_id)}};state.currentNavigation={...resumed._navigation};playItem(resumed,recent.type);}return;}const section=e.target.closest(".home-section");if(section){openBrowser(section.dataset.section);}});
   $("homeSections").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.closest(".home-section"))openBrowser(e.target.closest(".home-section").dataset.section);});
   $("categoryTree").addEventListener("click",e=>{const b=e.target.closest("[data-category]");if(b){const id=b.dataset.category;const categoryId=id===""?null:id;state.currentNavigation={type:state.mediaType,categoryId};openBrowser(state.mediaType,categoryId);}});
-  $("playerTree").addEventListener("click",e=>{const favBtn=e.target.closest("[data-favorite-id]");if(favBtn){const item=(state.playerItems||[]).find(x=>String(x.stream_id??x.series_id??x.id??x.stream_url??getName(x))===favBtn.dataset.favoriteId);if(item)toggleFavorite(item,favBtn.dataset.favoriteType);return;}const b=e.target.closest("[data-player-item]");if(!b)return;const item=(state.playerItems||[]).find(x=>String(x.stream_id??x.series_id??x.id??x.stream_url??getName(x))===b.dataset.playerItem);if(item)playItem(item,state.playerType||state.mediaType);});
+  $("playerTree").addEventListener("click",e=>{const seasonBtn=e.target.closest("[data-season-toggle]");if(seasonBtn){const season=seasonBtn.dataset.seasonToggle;if(state.expandedSeasons.has(season))state.expandedSeasons.delete(season);else state.expandedSeasons.add(season);renderPlayerTree(state.currentItem);return;}const favBtn=e.target.closest("[data-favorite-id]");if(favBtn){const item=(state.playerItems||[]).find(x=>String(x.stream_id??x.series_id??x.id??x.stream_url??getName(x))===favBtn.dataset.favoriteId);if(item)toggleFavorite(item,favBtn.dataset.favoriteType);return;}const b=e.target.closest("[data-player-item]");if(!b)return;const item=(state.playerItems||[]).find(x=>String(x.stream_id??x.series_id??x.id??x.stream_url??getName(x))===b.dataset.playerItem);if(item)playItem(item,state.playerType||state.mediaType);});
   $("mediaGrid").addEventListener("click",e=>{const favBtn=e.target.closest("[data-favorite-id]");if(favBtn){e.preventDefault();e.stopPropagation();const item=state.items.find(i=>String(i.stream_id??i.series_id??i.id??i.stream_url??getName(i))===favBtn.dataset.favoriteId);if(item)toggleFavorite(item,favBtn.dataset.favoriteType);return;}const el=e.target.closest(".media-card");if(!el)return;const item=state.items.find(i=>String(i.stream_id??i.series_id??i.id??i.stream_url??getName(i))===el.dataset.itemId);if(item){state.currentNavigation={type:state.mediaType,categoryId:state.categoryId};playItem(item,state.mediaType);}});
   $("searchInput").addEventListener("input",renderItems);$("sortSelect").addEventListener("change",renderItems);
   $("backHome").addEventListener("click",()=>{stopPlayback();showScreen("homeScreen");renderHome();});
