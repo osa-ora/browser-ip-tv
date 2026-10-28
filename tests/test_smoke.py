@@ -90,6 +90,11 @@ def test_continue_watching_progress_persists_per_profile(monkeypatch):
         client.post("/api/recent", json=payload)
         loaded = client.get("/api/recent?profile_id=profile123").json()["items"]
         assert len(loaded) == 1 and loaded[0]["position"] == 240
+        removed = client.request("DELETE", "/api/recent", json={
+            "profile_id": "profile123", "media_type": "movies", "item": payload["item"]
+        })
+        assert removed.status_code == 200 and removed.json()["removed"] is True
+        assert client.get("/api/recent?profile_id=profile123").json()["items"] == []
 
 
 def test_refresh_profile_stores_xtream_expiry(monkeypatch):

@@ -17,3 +17,9 @@
 
 /* Season-grouped series playlist */
 .season-group{margin:0 0 8px;border:1px solid var(--line);border-radius:9px;overflow:hidden}.season-heading{display:flex;align-items:center;gap:8px;width:100%;padding:10px;background:var(--panel2);border:0;color:var(--text);text-align:left;font-size:12px;font-weight:700;cursor:pointer}.season-heading:hover{color:var(--accent)}.season-chevron{width:12px;color:var(--accent)}.season-count{margin-left:auto;color:var(--muted);font-size:10px;font-weight:500}.season-episodes{padding:4px 5px 5px 12px}.episode-row .tree-item{padding:8px 7px;font-size:11px}.episode-row .tree-item.active{color:var(--text)}
+
+/* v0.3.2: favorite state and Continue Watching removal */
+.favorite-toggle.is-favorite,.tree-more.is-favorite,.player-tree-row .tree-more.is-favorite{color:#ff405d!important;border-color:#ff405d!important}
+.continue-card .favorite-toggle{right:44px}
+.remove-recent{position:absolute;top:8px;right:8px;width:32px;height:32px;padding:0;display:grid;place-items:center;border-radius:9px;background:rgba(8,12,20,.88);color:#fff;border:1px solid rgba(255,255,255,.35);font-size:24px;line-height:1;z-index:4}
+.remove-recent:hover{color:#ff405d;border-color:#ff405d}

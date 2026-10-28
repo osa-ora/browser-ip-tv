@@ -1,29 +1,24 @@
-# Local IPTV Client
+# Local IPTV
 
-**Version 0.2.8**
+**Version 0.3.2** · Local-first desktop-browser IPTV client
 
 A local IPTV client built with Python, FastAPI, HTML, CSS, and vanilla JavaScript.
 
 ## Features
+- Continue Watching resumes series episodes with the complete season-and-episode tree restored.
+
 
 - Xtream Codes profiles for Live TV, Movies, Series, categories, account status, and subscription expiry when provided by the service.
 - M3U/M3U8 playlist support for Live TV.
 - Multiple named IPTV profiles with add, edit, remove, and top-bar server switching.
-
-  <img width="758" height="627" alt="Screenshot 2026-10-28 at 10 49 34 PM" src="https://github.com/user-attachments/assets/537c1608-b18f-440f-a98d-ed221ac57e0c" />
-  
 - Home sections for Continue Watching, Movies, Series, and Live TV; drag sections to reorder them.
-- Favorite channels, movies, and series, saved per IPTV profile and pinned to the top of each library's navigation tree.
+- Favorite channels, movies, and series, saved per IPTV profile and pinned to the top of each library's navigation tree. Favorite controls switch between dots and a red heart, which removes the item from favorites when clicked.
 - Home rows show favorites for Live TV, Movies, and Series when favorites exist; otherwise, they show the default catalog selection.
-- Continue Watching saves playback progress and navigation context per profile and resumes supported streams from the saved position.
-
-  <img width="1669" height="852" alt="Screenshot 2026-10-28 at 10 48 54 PM" src="https://github.com/user-attachments/assets/1b4825e3-4b71-4a13-8fd8-15f30c819da2" />
-
+- Continue Watching saves playback progress and navigation context per profile, resumes supported streams from the saved position, uses the parent series artwork for episode entries, and lets you remove individual entries.
+- Series playback groups episodes under expandable season headings in the player tree, with episode counts and the active season expanded by default.
 - Daily catalog cache under `~/.local-iptv/cache/`.
 - Optional application password, temporary lockout after three failed attempts, dark/light/system themes, and saved preferences.
 - Local configuration under `~/.local-iptv/` (Windows: the home directory's `.local-iptv` folder).
-
-
 
 ## Run
 
@@ -46,7 +41,7 @@ run.bat status
 run.bat stop
 ```
 
-The app opens at **http://127.0.0.1:8766**. The launcher runs the server in the background and opens the default browser.
+The app opens at **http://127.0.0.1:8766**. The launcher runs the server in the background and opens the default browser. Use the **×** button in the app header to close Local IPTV and stop its server; use `./run.sh stop` or `run.bat stop` if needed.
 
 ### Manual setup
 

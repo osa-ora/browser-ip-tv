@@ -36,7 +36,7 @@ LOCKED_UNTIL = 0.0
 SESSIONS: dict[str, float] = {}
 SESSION_TTL = 12 * 60 * 60
 
-app = FastAPI(title=APP_NAME, version="0.3.1")
+app = FastAPI(title=APP_NAME, version="0.3.2")
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
@@ -254,6 +254,12 @@ class ProfilePayload(BaseModel):
 
 
 class FavoritePayload(BaseModel):
+    profile_id: str = Field(min_length=1, max_length=128)
+    media_type: str = Field(pattern="^(live|movies|series)$")
+    item: dict[str, Any]
+
+
+class RecentDeletePayload(BaseModel):
     profile_id: str = Field(min_length=1, max_length=128)
     media_type: str = Field(pattern="^(live|movies|series)$")
     item: dict[str, Any]
@@ -602,6 +608,23 @@ def get_recent(request: FastAPIRequest, profile_id: str | None = None):
     profile = _get_profile(config, profile_id)
     items = config.get("recent", {}).get(profile["id"], [])
     return {"items": items if isinstance(items, list) else []}
+
+
+@app.delete("/api/recent")
+def delete_recent(payload: RecentDeletePayload, request: FastAPIRequest):
+    config = _load_config()
+    _session(request, config)
+    profile = _get_profile(config, payload.profile_id)
+    recent_by_profile = config.setdefault("recent", {})
+    items = recent_by_profile.setdefault(profile["id"], [])
+    key = _item_key(payload.item)
+    before = len(items)
+    items[:] = [entry for entry in items if not (
+        entry.get("type") == payload.media_type and
+        _item_key(entry.get("item", {})) == key
+    )]
+    _save_config(config)
+    return {"ok": True, "removed": len(items) < before, "items": items}
 
 
 @app.post("/api/recent")
