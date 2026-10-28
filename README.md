@@ -1,6 +1,6 @@
-# Local IPTV
+# Local IPTV Client
 
-**Version 0.2.7** · Local-first desktop-browser IPTV client
+**Version 0.2.8**
 
 A local IPTV client built with Python, FastAPI, HTML, CSS, and vanilla JavaScript.
 
